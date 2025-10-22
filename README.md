@@ -1185,3 +1185,9 @@ const styles = StyleSheet.create({
 });
 
 export default ProfileScreen;
+
+# Si prefieres usar Git:
+1. Crea un repositorio en GitHub
+2. Sube tu archivo index.html
+3. Conecta Netlify a tu repositorio
+4. Despliegue automático
