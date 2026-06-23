@@ -365,3 +365,168 @@ const styles = StyleSheet.create({
 });
 
 export default LoginScreen;
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  StyleSheet,
+  Alert,
+  Text,
+  TouchableOpacity,
+  FlatList
+} from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
+import * as Location from 'expo-location';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../config/firebase';
+
+const MapScreen = ({ navigation }) => {
+  const [location, setLocation] = useState(null);
+  const [offers, setOffers] = useState([]);
+  const [errorMsg, setErrorMsg] = useState(null);
+
+  useEffect(() => {
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        setErrorMsg('Permiso de ubicación denegado');
+        return;
+      }
+
+      let currentLocation = await Location.getCurrentPositionAsync({});
+      setLocation(currentLocation);
+    })();
+  }, []);
+
+  useEffect(() => {
+    const q = query(collection(db, 'offers'), where('active', '==', true));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const offersData = [];
+      snapshot.forEach((doc) => {
+        offersData.push({ id: doc.id, ...doc.data() });
+      });
+      setOffers(offersData);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  const renderOfferItem = ({ item }) => (
+    <TouchableOpacity 
+      style={styles.offerCard}
+      onPress={() => navigation.navigate('OfferDetail', { offer: item })}
+    >
+      <Text style={styles.offerTitle}>{item.title}</Text>
+      <Text style={styles.offerDiscount}>{item.discount}</Text>
+      <Text style={styles.offerBusiness}>{item.businessName}</Text>
+      <Text style={styles.offerDistance}>A 1.2 km</Text>
+    </TouchableOpacity>
+  );
+
+  if (errorMsg) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>{errorMsg}</Text>
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.container}>
+      {location && (
+        <MapView
+          style={styles.map}
+          initialRegion={{
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+            latitudeDelta: 0.0922,
+            longitudeDelta: 0.0421,
+          }}
+          showsUserLocation={true}
+        >
+          {offers.map((offer) => (
+            <Marker
+              key={offer.id}
+              coordinate={{
+                latitude: offer.location?.latitude || location.coords.latitude + (Math.random() - 0.5) * 0.01,
+                longitude: offer.location?.longitude || location.coords.longitude + (Math.random() - 0.5) * 0.01,
+              }}
+              title={offer.title}
+              description={offer.discount}
+              onCalloutPress={() => navigation.navigate('OfferDetail', { offer })}
+            />
+          ))}
+        </MapView>
+      )}
+      
+      <View style={styles.offersList}>
+        <Text style={styles.sectionTitle}>Ofertas Cercanas</Text>
+        <FlatList
+          data={offers}
+          renderItem={renderOfferItem}
+          keyExtractor={item => item.id}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+        />
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  map: {
+    width: '100%',
+    height: '70%',
+  },
+  offersList: {
+    flex: 1,
+    padding: 15,
+    backgroundColor: '#fff',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  offerCard: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 10,
+    marginRight: 10,
+    width: 200,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4e54c8',
+  },
+  offerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  offerDiscount: {
+    fontSize: 14,
+    color: '#e74c3c',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  offerBusiness: {
+    fontSize: 12,
+    color: '#666',
+    marginBottom: 5,
+  },
+  offerDistance: {
+    fontSize: 11,
+    color: '#999',
+  },
+  errorText: {
+    fontSize: 16,
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 50,
+  },
+});
+
+export default MapScreen;
