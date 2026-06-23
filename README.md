@@ -73,3 +73,70 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export default app;
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+
+// Screens
+import LoginScreen from '../screens/LoginScreen';
+import MapScreen from '../screens/MapScreen';
+import OfferDetailScreen from '../screens/OfferDetailScreen';
+import ProfileScreen from '../screens/ProfileScreen';
+import CouponsScreen from '../screens/CouponsScreen';
+
+const Stack = createStackNavigator();
+const Tab = createBottomTabNavigator();
+
+function MainTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName;
+          
+          if (route.name === 'Mapa') {
+            iconName = focused ? 'map' : 'map-outline';
+          } else if (route.name === 'Cupones') {
+            iconName = focused ? 'ticket' : 'ticket-outline';
+          } else if (route.name === 'Perfil') {
+            iconName = focused ? 'person' : 'person-outline';
+          }
+          
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+        tabBarActiveTintColor: '#4e54c8',
+        tabBarInactiveTintColor: 'gray',
+      })}
+    >
+      <Tab.Screen name="Mapa" component={MapScreen} />
+      <Tab.Screen name="Cupones" component={CouponsScreen} />
+      <Tab.Screen name="Perfil" component={ProfileScreen} />
+    </Tab.Navigator>
+  );
+}
+
+export default function AppNavigator() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        <Stack.Screen 
+          name="Login" 
+          component={LoginScreen}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="Main" 
+          component={MainTabs}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen 
+          name="OfferDetail" 
+          component={OfferDetailScreen}
+          options={{ title: 'Detalle de Oferta' }}
+        />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
