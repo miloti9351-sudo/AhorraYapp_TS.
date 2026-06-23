@@ -31,3 +31,24 @@
     "@babel/core": "^7.20.0"
   }
 }
+import React from 'react';
+import { StatusBar } from 'expo-status-bar';
+import { StyleSheet } from 'react-native';
+import AppNavigator from './src/navigation/AppNavigator';
+import { AuthProvider } from './src/utils/AuthContext';
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <StatusBar style="auto" />
+      <AppNavigator />
+    </AuthProvider>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+});
