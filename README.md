@@ -1,6 +1,9 @@
 {
   "name": "ahorrayaapp",
   "version": "1.0.0",
+  [build]
+  command = "npm run build"
+  publish = "web-build"
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
     "start": "expo start",
