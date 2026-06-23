@@ -789,3 +789,198 @@ const styles = StyleSheet.create({
 });
 
 export default OfferDetailScreen;
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+  Alert
+} from 'react-native';
+import { doc, onSnapshot, updateDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { useAuth } from '../utils/AuthContext';
+
+const CouponsScreen = () => {
+  const [coupons, setCoupons] = useState([]);
+  const { user } = useAuth();
+
+  useEffect(() => {
+    if (!user) return;
+
+    const userRef = doc(db, 'users', user.uid);
+    
+    const unsubscribe = onSnapshot(userRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const userData = docSnap.data();
+        setCoupons(userData.coupons || []);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  const markAsUsed = async (couponId) => {
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      const updatedCoupons = coupons.map(coupon => 
+        coupon.id === couponId ? { ...coupon, used: true } : coupon
+      );
+      
+      await updateDoc(userRef, {
+        coupons: updatedCoupons
+      });
+      
+      Alert.alert('¡Listo!', 'Cupón marcado como usado');
+    } catch (error) {
+      console.error('Error al marcar cupón:', error);
+      Alert.alert('Error', 'No se pudo marcar el cupón');
+    }
+  };
+
+  const renderCouponItem = ({ item }) => (
+    <View style={[styles.couponCard, item.used && styles.usedCoupon]}>
+      <View style={styles.couponHeader}>
+        <Text style={styles.couponTitle}>{item.offerTitle}</Text>
+        <Text style={styles.couponDiscount}>{item.offerDiscount}</Text>
+      </View>
+      
+      <Text style={styles.businessName}>{item.businessName}</Text>
+      <Text style={styles.couponCode}>Código: {item.code}</Text>
+      <Text style={styles.validUntil}>
+        Válido hasta: {new Date(item.validUntil).toLocaleDateString()}
+      </Text>
+      
+      {!item.used && (
+        <TouchableOpacity 
+          style={styles.useButton}
+          onPress={() => markAsUsed(item.id)}
+        >
+          <Text style={styles.useButtonText}>Marcar como Usado</Text>
+        </TouchableOpacity>
+      )}
+      
+      {item.used && (
+        <Text style={styles.usedText}>✅ Ya usado</Text>
+      )}
+    </View>
+  );
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Mis Cupones</Text>
+      
+      {coupons.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>No tienes cupones aún</Text>
+          <Text style={styles.emptySubtext}>
+            Visita el mapa para descubrir ofertas y obtener cupones
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={coupons}
+          renderItem={renderCouponItem}
+          keyExtractor={item => item.id}
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 15,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    color: '#333',
+  },
+  couponCard: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 15,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4e54c8',
+  },
+  usedCoupon: {
+    opacity: 0.7,
+    borderLeftColor: '#95a5a6',
+  },
+  couponHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 10,
+  },
+  couponTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    flex: 1,
+    marginRight: 10,
+  },
+  couponDiscount: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+  },
+  businessName: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  couponCode: {
+    fontSize: 12,
+    fontFamily: 'monospace',
+    backgroundColor: '#e9ecef',
+    padding: 5,
+    borderRadius: 5,
+    marginBottom: 5,
+  },
+  validUntil: {
+    fontSize: 12,
+    color: '#999',
+    marginBottom: 10,
+  },
+  useButton: {
+    backgroundColor: '#4e54c8',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  useButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  usedText: {
+    color: '#27ae60',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    fontSize: 18,
+    color: '#666',
+    marginBottom: 10,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+});
+
+export default CouponsScreen;
