@@ -984,3 +984,206 @@ const styles = StyleSheet.create({
 });
 
 export default CouponsScreen;
+import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  ScrollView
+} from 'react-native';
+import { useAuth } from '../utils/AuthContext';
+
+const ProfileScreen = () => {
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    Alert.alert(
+      'Cerrar Sesión',
+      '¿Estás seguro de que quieres cerrar sesión?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { 
+          text: 'Cerrar Sesión', 
+          style: 'destructive',
+          onPress: async () => {
+            const result = await logout();
+            if (!result.success) {
+              Alert.alert('Error', 'No se pudo cerrar sesión');
+            }
+          }
+        },
+      ]
+    );
+  };
+
+  const stats = [
+    { label: 'Cupones Obtenidos', value: '12' },
+    { label: 'Dinero Ahorrado', value: '$156.50' },
+    { label: 'Ofertas Visitadas', value: '8' },
+  ];
+
+  return (
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <View style={styles.avatar}>
+          <Text style={styles.avatarText}>
+            {user?.email?.charAt(0).toUpperCase()}
+          </Text>
+        </View>
+        <Text style={styles.email}>{user?.email}</Text>
+        <Text style={styles.memberSince}>Miembro desde Enero 2023</Text>
+      </View>
+
+      <View style={styles.statsContainer}>
+        <Text style={styles.sectionTitle}>Mi Actividad</Text>
+        <View style={styles.statsGrid}>
+          {stats.map((stat, index) => (
+            <View key={index} style={styles.statCard}>
+              <Text style={styles.statValue}>{stat.value}</Text>
+              <Text style={styles.statLabel}>{stat.label}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.menuSection}>
+        <Text style={styles.sectionTitle}>Configuración</Text>
+        
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuText}>Notificaciones</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuText}>Privacidad</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuText}>Ayuda y Soporte</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity style={styles.menuItem}>
+          <Text style={styles.menuText}>Términos y Condiciones</Text>
+          <Text style={styles.menuArrow}>›</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        <Text style={styles.logoutButtonText}>Cerrar Sesión</Text>
+      </TouchableOpacity>
+
+      <Text style={styles.version}>AhorraYa+ v1.0.0</Text>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  header: {
+    alignItems: 'center',
+    padding: 30,
+    backgroundColor: '#f8f9fa',
+  },
+  avatar: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#4e54c8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  avatarText: {
+    color: '#fff',
+    fontSize: 30,
+    fontWeight: 'bold',
+  },
+  email: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 5,
+  },
+  memberSince: {
+    fontSize: 14,
+    color: '#666',
+  },
+  statsContainer: {
+    padding: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    color: '#333',
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  statValue: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#4e54c8',
+    marginBottom: 5,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  menuSection: {
+    padding: 20,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  menuArrow: {
+    fontSize: 20,
+    color: '#999',
+  },
+  logoutButton: {
+    margin: 20,
+    padding: 15,
+    backgroundColor: '#e74c3c',
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  logoutButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  version: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 12,
+    marginBottom: 20,
+  },
+});
+
+export default ProfileScreen;
