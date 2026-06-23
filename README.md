@@ -530,3 +530,262 @@ const styles = StyleSheet.create({
 });
 
 export default MapScreen;
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  Share
+} from 'react-native';
+import QRCode from 'react-native-qrcode-svg';
+import { doc, updateDoc, arrayUnion, getDoc } from 'firebase/firestore';
+import { auth, db } from '../config/firebase';
+import { useAuth } from '../utils/AuthContext';
+
+const OfferDetailScreen = ({ route, navigation }) => {
+  const { offer } = route.params;
+  const [couponAcquired, setCouponAcquired] = useState(false);
+  const [couponCode, setCouponCode] = useState('');
+  const { user } = useAuth();
+
+  const generateCouponCode = () => {
+    return `AY${Date.now()}${Math.random().toString(36).substr(2, 5)}`.toUpperCase();
+  };
+
+  const acquireCoupon = async () => {
+    try {
+      if (!user) {
+        Alert.alert('Error', 'Debes iniciar sesión para obtener cupones');
+        return;
+      }
+
+      const code = generateCouponCode();
+      const couponData = {
+        id: Date.now().toString(),
+        offerId: offer.id,
+        offerTitle: offer.title,
+        offerDiscount: offer.discount,
+        businessName: offer.businessName,
+        acquiredAt: new Date(),
+        used: false,
+        code: code,
+        validUntil: offer.validUntil || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      };
+
+      // Guardar en Firebase
+      const userRef = doc(db, 'users', user.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        await updateDoc(userRef, {
+          coupons: arrayUnion(couponData)
+        });
+      } else {
+        await updateDoc(userRef, {
+          coupons: [couponData],
+          email: user.email,
+          createdAt: new Date()
+        });
+      }
+
+      setCouponCode(code);
+      setCouponAcquired(true);
+      
+      Alert.alert('¡Éxito!', 'Cupón obtenido correctamente');
+    } catch (error) {
+      console.error('Error al adquirir cupón:', error);
+      Alert.alert('Error', 'No se pudo obtener el cupón');
+    }
+  };
+
+  const shareOffer = async () => {
+    try {
+      await Share.share({
+        message: `¡Mira esta oferta en AhorraYa+! ${offer.title} - ${offer.discount}`,
+        url: 'https://ahorraya.com', // Reemplazar con tu URL real
+        title: offer.title
+      });
+    } catch (error) {
+      console.error('Error al compartir:', error);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.container}>
+      <Image 
+        source={{ uri: offer.image || 'https://via.placeholder.com/300x200?text=Oferta' }}
+        style={styles.image}
+        defaultSource={require('../../assets/placeholder.jpg')} // Asegúrate de tener esta imagen
+      />
+      
+      <View style={styles.content}>
+        <Text style={styles.title}>{offer.title}</Text>
+        <Text style={styles.business}>{offer.businessName}</Text>
+        <Text style={styles.discount}>{offer.discount}</Text>
+        
+        <Text style={styles.description}>
+          {offer.description || 'Oferta especial para usuarios de AhorraYa+'}
+        </Text>
+        
+        <View style={styles.details}>
+          <Text style={styles.detailText}>
+            📍 {offer.address || 'Ubicación no especificada'}
+          </Text>
+          <Text style={styles.detailText}>
+            ⏰ Válido hasta: {offer.validUntil ? new Date(offer.validUntil).toLocaleDateString() : '31/12/2023'}
+          </Text>
+          <Text style={styles.detailText}>
+            🏷️ Categoría: {offer.category || 'General'}
+          </Text>
+        </View>
+
+        {couponAcquired ? (
+          <View style={styles.couponSection}>
+            <Text style={styles.congrats}>¡Cupón Obtenido!</Text>
+            <Text style={styles.couponCode}>Código: {couponCode}</Text>
+            
+            <View style={styles.qrContainer}>
+              <QRCode
+                value={couponCode}
+                size={200}
+              />
+            </View>
+            
+            <Text style={styles.instructions}>
+              Muestra este código QR o el código numérico en el establecimiento
+            </Text>
+            
+            <TouchableOpacity style={styles.secondaryButton} onPress={shareOffer}>
+              <Text style={styles.secondaryButtonText}>Compartir Oferta</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={styles.actionSection}>
+            <TouchableOpacity style={styles.primaryButton} onPress={acquireCoupon}>
+              <Text style={styles.primaryButtonText}>Obtener Cupón Gratis</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity style={styles.secondaryButton} onPress={shareOffer}>
+              <Text style={styles.secondaryButtonText}>Compartir con Amigos</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </View>
+    </ScrollView>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  image: {
+    width: '100%',
+    height: 250,
+  },
+  content: {
+    padding: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 5,
+    color: '#333',
+  },
+  business: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 10,
+  },
+  discount: {
+    fontSize: 20,
+    color: '#e74c3c',
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 22,
+    color: '#555',
+    marginBottom: 20,
+  },
+  details: {
+    backgroundColor: '#f8f9fa',
+    padding: 15,
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  detailText: {
+    fontSize: 14,
+    marginBottom: 5,
+    color: '#666',
+  },
+  actionSection: {
+    marginTop: 20,
+  },
+  primaryButton: {
+    backgroundColor: '#4e54c8',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  secondaryButton: {
+    backgroundColor: 'transparent',
+    padding: 15,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#4e54c8',
+  },
+  secondaryButtonText: {
+    color: '#4e54c8',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  couponSection: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  congrats: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#27ae60',
+    marginBottom: 10,
+  },
+  couponCode: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 20,
+  },
+  qrContainer: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  instructions: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+});
+
+export default OfferDetailScreen;
